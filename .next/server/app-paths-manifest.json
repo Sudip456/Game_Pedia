@@ -1,0 +1,5 @@
+{
+  "/games/tictactoe/page": "app/games/tictactoe/page.js",
+  "/games/tetris/page": "app/games/tetris/page.js",
+  "/page": "app/page.js"
+}
