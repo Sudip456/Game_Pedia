@@ -48,6 +48,11 @@ type Position = {
   y: number;
 };
 
+type Piece = {
+  shape: number[][];
+  color: string;
+};
+
 const Tetris: React.FC = () => {
   const [board, setBoard] = useState<number[][]>([]);
   const [currentPiece, setCurrentPiece] = useState<number[][]>([]);
@@ -62,16 +67,16 @@ const Tetris: React.FC = () => {
   const [nextColor, setNextColor] = useState<string>('');
   const [highScore, setHighScore] = useState(0);
   
-  const gameLoopRef = useRef<NodeJS.Timeout>();
+const gameLoopRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const isGameActive = useRef(false);
 
   // Initialize board
-  const initBoard = useCallback(() => {
+  const initBoard = useCallback((): number[][] => {
     return Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(0));
   }, []);
 
   // Get random piece
-  const getRandomPiece = useCallback(() => {
+  const getRandomPiece = useCallback((): Piece => {
     const idx = Math.floor(Math.random() * SHAPES.length);
     const tetromino = SHAPES[idx];
     return {
@@ -103,7 +108,7 @@ const Tetris: React.FC = () => {
   }, [nextPiece, nextColor, getRandomPiece]);
 
   // Check collision
-  const checkCollision = useCallback((piece: number[][], pos: Position) => {
+  const checkCollision = useCallback((piece: number[][], pos: Position): boolean => {
     for (let y = 0; y < piece.length; y++) {
       for (let x = 0; x < piece[0].length; x++) {
         if (piece[y][x]) {
@@ -122,7 +127,7 @@ const Tetris: React.FC = () => {
   }, [board]);
 
   // Merge piece to board
-  const mergePiece = useCallback(() => {
+  const mergePiece = useCallback((): number[][] => {
     const newBoard = board.map(row => [...row]);
     
     for (let y = 0; y < currentPiece.length; y++) {
@@ -141,7 +146,7 @@ const Tetris: React.FC = () => {
   }, [board, currentPiece, currentPosition, currentColor]);
 
   // Clear lines and calculate score
-  const clearLines = useCallback((newBoard: number[][]) => {
+  const clearLines = useCallback((newBoard: number[][]): { board: number[][]; linesCleared: number } => {
     let linesCleared = 0;
     const clearedBoard = newBoard.filter(row => {
       if (row.every(cell => cell !== 0)) {
@@ -181,7 +186,7 @@ const Tetris: React.FC = () => {
   }, [score, level, lines, highScore]);
 
   // Move piece
-  const movePiece = useCallback((dx: number, dy: number) => {
+  const movePiece = useCallback((dx: number, dy: number): boolean => {
     if (gameOver || isPaused) return false;
     
     const newPos = { x: currentPosition.x + dx, y: currentPosition.y + dy };
@@ -193,7 +198,7 @@ const Tetris: React.FC = () => {
     // If moving down and collision, lock the piece
     if (dy === 1) {
       const newBoard = mergePiece();
-      const { board: clearedBoard, linesCleared } = clearLines(newBoard);
+      const { board: clearedBoard } = clearLines(newBoard);
       setBoard(clearedBoard);
       
       // Spawn next piece
@@ -210,7 +215,7 @@ const Tetris: React.FC = () => {
   }, [currentPiece, currentPosition, gameOver, isPaused, checkCollision, mergePiece, clearLines, spawnNewPiece]);
 
   // Rotate piece
-  const rotatePiece = useCallback(() => {
+  const rotatePiece = useCallback((): void => {
     if (gameOver || isPaused) return;
     
     // Rotate matrix
@@ -235,7 +240,7 @@ const Tetris: React.FC = () => {
   }, [currentPiece, currentPosition, gameOver, isPaused, checkCollision]);
 
   // Hard drop
-  const hardDrop = useCallback(() => {
+  const hardDrop = useCallback((): void => {
     if (gameOver || isPaused) return;
     
     while (movePiece(0, 1)) {
@@ -244,7 +249,7 @@ const Tetris: React.FC = () => {
   }, [movePiece, gameOver, isPaused]);
 
   // Game tick (move piece down)
-  const gameTick = useCallback(() => {
+  const gameTick = useCallback((): void => {
     if (!gameOver && !isPaused) {
       movePiece(0, 1);
     }
@@ -252,7 +257,7 @@ const Tetris: React.FC = () => {
 
   // Keyboard controls
   useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
+    const handleKeyPress = (e: KeyboardEvent): void => {
       if (gameOver) return;
       
       switch(e.key) {
@@ -310,7 +315,7 @@ const Tetris: React.FC = () => {
   }, [gameTick, level, isPaused, gameOver]);
 
   // Start new game
-  const startNewGame = useCallback(() => {
+  const startNewGame = useCallback((): void => {
     setBoard(initBoard());
     setScore(0);
     setLines(0);
@@ -338,7 +343,7 @@ const Tetris: React.FC = () => {
   }, [startNewGame]);
 
   // Render board with current piece
-  const renderBoard = () => {
+  const renderBoard = (): number[][] => {
     const displayBoard = board.map(row => [...row]);
     
     // Add current piece to display board
