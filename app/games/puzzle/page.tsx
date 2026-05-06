@@ -4,7 +4,7 @@ import Navbar from "@/components/Navbar";
 import Link from "next/link";
 
 function createSolved() {
-  return [...Array(16).keys()].map(i => (i === 15 ? 0 : i + 1));
+  return Array.from(Array(16).keys()).map(i => (i === 15 ? 0 : i + 1));
 }
 
 function shuffle(tiles: number[]) {
