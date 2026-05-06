@@ -5,6 +5,9 @@ module.exports = {
     tailwindcss: {},
     autoprefixer: {},
     
+    '@tailwindcss/postcss': {},
+  
+    
     // Or for Tailwind v4
     // '@tailwindcss/postcss': {},
   },
