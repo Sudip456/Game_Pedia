@@ -175,13 +175,13 @@ export default function SnakePage() {
           <canvas ref={canvasRef} width={W} height={H} />
           {status !== "playing" && (
             <div className="game-overlay">
-              <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "2rem", fontWeight: 900, color: "#e2e8f0", marginBottom: 8 }}>
-                {status === "dead" ? "GAME OVER" : "SNAKE"}
+              <div style={{ fontFamily: "'Orbitron', monospace",  fontSize: "2rem", fontWeight: 900, color: "#e2e8f0", marginBottom: 8 ,marginLeft:10 }}>
+                {status === "dead" ? "GAME OVER" : " "}
               </div>
               {status === "dead" && (
-                <div style={{ color: "#64748b", fontFamily: "'Exo 2', sans-serif", marginBottom: 24 }}>Score: {score}</div>
+                <div style={{ color: "#64748b", fontFamily: "'Exo 2', sans-serif", marginBottom: 24 , padding:5 , marginLeft:10 }}>Score: {score}</div>
               )}
-              <button className="btn-primary" onClick={start}>
+              <button className="btn-primary" style={{padding:9 ,position:"relative", left:"30%" }} onClick={start}>
                 {status === "dead" ? "Play Again" : "Start Game"}
               </button>
             </div>

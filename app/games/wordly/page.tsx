@@ -119,79 +119,423 @@ export default function WordFill() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0a0a0f] text-white pb-12">
-            <div className="max-w-md mx-auto pt-8 px-4">
-                <div className="flex justify-between items-center mb-8">
-                    <Link href="/" className="text-[#475569] hover:text-white">← Back</Link>
-                    <h1 className="text-4xl font-black tracking-tighter text-emerald-400">WORDFILL</h1>
-                    <div className="font-mono">Score: <span className="text-emerald-400">{score}</span></div>
-                </div>
+        <>
+            <style jsx>{`
+                * {
+                    box-sizing: border-box;
+                }
 
-                <div className="bg-[#12121a] border border-[#1e1e2e] rounded-3xl p-8">
-                    <div className="text-center mb-8">
-                        <p className="text-[#64748b] text-sm mb-1">Guess the 5-letter word</p>
-                        <p className="text-3xl font-mono tracking-[6px] text-transparent">-----</p>
+                .game-container {
+                    min-height: 100vh;
+                    background: linear-gradient(135deg, #0a0a0f 0%, #000000 100%);
+                    color: white;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+                }
+
+                .main-wrapper {
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 2rem 1rem;
+                }
+
+                /* Header Styles */
+                .header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 2rem;
+                    flex-wrap: wrap;
+                    gap: 1rem;
+                }
+
+                .back-link {
+                    color: #9ca3af;
+                    text-decoration: none;
+                    transition: color 0.2s;
+                    font-size: 0.9rem;
+                }
+
+                .back-link:hover {
+                    color: white;
+                }
+
+                .title {
+                    font-size: 2rem;
+                    font-weight: 900;
+                    letter-spacing: -0.025em;
+                    background: linear-gradient(135deg, #10b981, #059669);
+                    -webkit-background-clip: text;
+                    background-clip: text;
+                    color: transparent;
+                    margin: 0;
+                }
+
+                .score {
+                    font-family: monospace;
+                    color: #d1d5db;
+                    font-size: 0.9rem;
+                }
+
+                .score-value {
+                    color: #10b981;
+                    font-weight: bold;
+                    font-size: 1.2rem;
+                }
+
+                .game-card {
+                    background: rgba(31, 41, 55, 0.5);
+                    backdrop-filter: blur(10px);
+                    border: 1px solid #374151;
+                    border-radius: 1.5rem;
+                    padding: 2rem;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                }
+
+                .game-header {
+                    text-align: center;
+                    margin-bottom: 2rem;
+                }
+
+                .game-subtitle {
+                    color: #9ca3af;
+                    font-size: 0.875rem;
+                    margin-bottom: 0.25rem;
+                }
+
+
+                .boxes-container {
+                    display: flex;
+                    gap: 1rem;
+                    justify-content: center;
+                    margin-bottom: 2rem;
+                    flex-wrap: wrap;
+                }
+
+                .box {
+                    width: 80px;
+                    height: 90px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 2.5rem;
+                    font-weight: bold;
+                    border-radius: 0.75rem;
+                    border: 2px solid #374151;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    background: rgba(31, 41, 55, 0.8);
+                    color: white;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                }
+
+                .box.revealed {
+                    background: linear-gradient(135deg, #064e3b, #022c22);
+                    border-color: #10b981;
+                    color: #a7f3d0;
+                    cursor: default;
+                }
+
+                .box.selected {
+                    background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(5, 150, 105, 0.3));
+                    border-color: #10b981;
+                    transform: scale(1.05);
+                    box-shadow: 0 0 0 2px #10b981, 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+                }
+
+                .box:not(.revealed):hover {
+                    border-color: #10b981;
+                    background: rgba(55, 65, 81, 0.8);
+                }
+
+                .attempts-container {
+                    text-align: center;
+                    margin-bottom: 2rem;
+                }
+
+                .attempts-label {
+                    color: #9ca3af;
+                    font-size: 0.875rem;
+                    margin-bottom: 0.25rem;
+                }
+
+                .attempts-value {
+                    color: #f97316;
+                    font-weight: bold;
+                    font-size: 2.5rem;
+                }
+
+                .check-button {
+                    width: 100%;
+                    background: linear-gradient(135deg, #059669, #047857);
+                    color: white;
+                    padding: 1rem;
+                    border: none;
+                    border-radius: 1rem;
+                    font-size: 1rem;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3);
+                }
+
+                .check-button:hover {
+                    background: linear-gradient(135deg, #10b981, #059669);
+                    transform: scale(1.02);
+                }
+
+                .check-button:active {
+                    transform: scale(0.98);
+                }
+
+                .helper-text {
+                    text-align: center;
+                    color: #6b7280;
+                    margin-top: 1.5rem;
+                    font-size: 0.875rem;
+                }
+
+                .toast {
+                    position: fixed;
+                    top: 6rem;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: #1f2937;
+                    border: 1px solid #4b5563;
+                    padding: 0.75rem 1.5rem;
+                    border-radius: 0.75rem;
+                    z-index: 50;
+                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+                    animation: slideDown 0.3s ease-out;
+                    white-space: nowrap;
+                }
+
+                .modal-overlay {
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(0, 0, 0, 0.9);
+                    backdrop-filter: blur(8px);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 50;
+                    padding: 1rem;
+                    animation: fadeIn 0.3s ease-out;
+                }
+
+                .modal-content {
+                    background: linear-gradient(135deg, #1f2937, #111827);
+                    border: 1px solid #374151;
+                    border-radius: 1.5rem;
+                    padding: 2rem;
+                    width: 100%;
+                    max-width: 400px;
+                    text-align: center;
+                    animation: zoomIn 0.3s ease-out;
+                }
+
+                .modal-emoji {
+                    font-size: 4rem;
+                    margin-bottom: 1rem;
+                }
+
+                .modal-title {
+                    font-size: 2.5rem;
+                    font-weight: 900;
+                    margin-bottom: 0.75rem;
+                    background: linear-gradient(135deg, #f87171, #fb923c);
+                    -webkit-background-clip: text;
+                    background-clip: text;
+                    color: transparent;
+                }
+
+                .modal-score {
+                    font-size: 1.5rem;
+                    margin-bottom: 2rem;
+                    color: #d1d5db;
+                }
+
+                .modal-score-value {
+                    color: #10b981;
+                    font-weight: bold;
+                    font-size: 2rem;
+                }
+
+                .restart-button {
+                    width: 100%;
+                    background: linear-gradient(135deg, #10b981, #059669);
+                    color: white;
+                    padding: 1rem;
+                    border: none;
+                    border-radius: 0.75rem;
+                    font-size: 1rem;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .restart-button:hover {
+                    background: linear-gradient(135deg, #34d399, #10b981);
+                    transform: scale(1.02);
+                }
+
+                
+                @keyframes slideDown {
+                    from {
+                        opacity: 0;
+                        transform: translateX(-50%) translateY(-20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(-50%) translateY(0);
+                    }
+                }
+
+                @keyframes fadeIn {
+                    from {
+                        opacity: 0;
+                    }
+                    to {
+                        opacity: 1;
+                    }
+                }
+
+                @keyframes zoomIn {
+                    from {
+                        opacity: 0;
+                        transform: scale(0.95);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: scale(1);
+                    }
+                }
+
+                @media (max-width: 640px) {
+                    .main-wrapper {
+                        padding: 1rem;
+                    }
+
+                    .game-card {
+                        padding: 1.5rem;
+                    }
+
+                    .box {
+                        width: 60px;
+                        height: 70px;
+                        font-size: 1.8rem;
+                    }
+
+                    .boxes-container {
+                        gap: 0.75rem;
+                    }
+
+                    .title {
+                        font-size: 1.5rem;
+                    }
+
+                    .header {
+                        margin-bottom: 1.5rem;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .box {
+                        width: 50px;
+                        height: 60px;
+                        font-size: 1.5rem;
+                    }
+
+                    .boxes-container {
+                        gap: 0.5rem;
+                    }
+
+                    .game-card {
+                        padding: 1rem;
+                    }
+
+                    .attempts-value {
+                        font-size: 2rem;
+                    }
+                }
+
+                @media (min-width: 1024px) {
+                    .main-wrapper {
+                        max-width: 700px;
+                    }
+
+                    .box {
+                        width: 100px;
+                        height: 110px;
+                        font-size: 3rem;
+                    }
+                }
+            `}</style>
+
+            <div className="game-container">
+                <div className="main-wrapper">
+                    <div className="header">
+                        <Link href="/" className="back-link">
+                            ← Back to Home
+                        </Link>
+                        <h1 className="title">WORDFILL</h1>
+                        <div className="score">
+                            Score: <span className="score-value">{score}</span>
+                        </div>
                     </div>
 
-                    {/* Word Boxes */}
-                    <div className="flex gap-4 justify-center mb-10">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                            <div
-                                key={i}
-                                onClick={() => handleBoxClick(i)}
-                                className={`w-16 h-20 flex items-center justify-center text-5xl font-bold rounded-2xl border-2 cursor-pointer transition-all active:scale-95
-                                    ${revealed[i] 
-                                        ? 'bg-emerald-900/40 border-emerald-500 text-emerald-300' 
-                                        : selectedIndex === i 
-                                            ? 'bg-[#1e3a2f] border-emerald-400 scale-110 ring-2 ring-emerald-400' 
-                                        : 'bg-[#1a1a1f] border-[#334155] hover:border-[#64748b]'
-                                    }`}
-                            >
-                                {revealed[i] || userInput[i] || ""}
-                            </div>
-                        ))}
-                    </div>
+                    <div className="game-card">
+                        <div className="game-header">
+                            <p className="game-subtitle">Guess the 5-letter word</p>
+                        </div>
 
-                    <div className="text-center mb-8">
-                        Attempts Left: <span className="text-orange-400 font-bold text-3xl">{attempts}</span>
-                    </div>
+                        <div className="boxes-container">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <div
+                                    key={i}
+                                    onClick={() => handleBoxClick(i)}
+                                    className={`box ${revealed[i] ? 'revealed' : ''} ${selectedIndex === i ? 'selected' : ''}`}
+                                >
+                                    {revealed[i] || userInput[i] || ""}
+                                </div>
+                            ))}
+                        </div>
 
-                    <button
-                        onClick={checkAnswer}
-                        className="w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-2xl text-lg font-bold transition active:scale-95"
-                    >
-                        CHECK ANSWER
-                    </button>
-                </div>
+                        <div className="attempts-container">
+                            <p className="attempts-label">Attempts Left</p>
+                            <div className="attempts-value">{attempts}</div>
+                        </div>
 
-                <p className="text-center text-[#475569] mt-6 text-sm">
-                    Tap empty box → Type on keyboard
-                </p>
-            </div>
-
-            {/* Toast */}
-            {message && (
-                <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-[#1f1f2b] border border-[#334155] px-8 py-4 rounded-2xl z-50 shadow-2xl">
-                    {message}
-                </div>
-            )}
-
-            {/* Game Over */}
-            {gameOver && (
-                <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
-                    <div className="bg-[#12121a] border border-[#1e1e2e] rounded-3xl p-10 w-full max-w-sm text-center">
-                        <div className="text-6xl mb-4">😔</div>
-                        <h2 className="text-4xl font-black mb-3">GAME OVER</h2>
-                        <p className="text-2xl mb-8">Final Score: <span className="text-emerald-400">{score}</span></p>
-                        <button
-                            onClick={restartGame}
-                            className="w-full bg-white text-black py-4 rounded-2xl font-bold text-lg hover:bg-gray-100"
-                        >
-                            Play Again
+                        <button onClick={checkAnswer} className="check-button">
+                            CHECK ANSWER
                         </button>
                     </div>
+
+                    <p className="helper-text">
+                         Tap an empty box → Type on keyboard 
+                    </p>
                 </div>
-            )}
-        </div>
+
+                {message && (
+                    <div className="toast">
+                        <span>{message}</span>
+                    </div>
+                )}
+
+                {gameOver && (
+                    <div className="modal-overlay">
+                        <div className="modal-content">
+                            <div className="modal-emoji">🎮</div>
+                            <h2 className="modal-title">GAME OVER</h2>
+                            <p className="modal-score">
+                                Final Score: <span className="modal-score-value">{score}</span>
+                            </p>
+                            <button onClick={restartGame} className="restart-button">
+                                Play Again
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </>
     );
 }

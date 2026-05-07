@@ -41,7 +41,7 @@ const COLORS = Object.values(TETROMINOS).map(t => t.color);
 const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 20;
 const CELL_SIZE = 30;
-const TICK_SPEED = 500; // milliseconds
+const TICK_SPEED = 500;
 
 type Position = {
   x: number;
@@ -67,7 +67,7 @@ const Tetris: React.FC = () => {
   const [nextColor, setNextColor] = useState<string>('');
   const [highScore, setHighScore] = useState(0);
   
-const gameLoopRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const gameLoopRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const isGameActive = useRef(false);
 
   // Initialize board
@@ -156,29 +156,27 @@ const gameLoopRef = useRef<NodeJS.Timeout | undefined>(undefined);
       return true;
     });
     
-    // Add empty rows at the top
     for (let i = 0; i < linesCleared; i++) {
       clearedBoard.unshift(Array(BOARD_WIDTH).fill(0));
     }
     
-    // Update score based on lines cleared
     if (linesCleared > 0) {
       const points = [0, 40, 100, 300, 1200];
       const newScore = score + points[linesCleared] * (level + 1);
       setScore(newScore);
       setLines(prev => prev + linesCleared);
       
-      // Update level (every 10 lines)
       const newLines = lines + linesCleared;
       const newLevel = Math.floor(newLines / 10);
       if (newLevel > level) {
         setLevel(newLevel);
       }
       
-      // Update high score
       if (newScore > highScore) {
         setHighScore(newScore);
-        localStorage.setItem('tetrisHighScore', newScore.toString());
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('tetrisHighScore', newScore.toString());
+        }
       }
     }
     
@@ -195,16 +193,12 @@ const gameLoopRef = useRef<NodeJS.Timeout | undefined>(undefined);
       return true;
     }
     
-    // If moving down and collision, lock the piece
     if (dy === 1) {
       const newBoard = mergePiece();
       const { board: clearedBoard } = clearLines(newBoard);
       setBoard(clearedBoard);
-      
-      // Spawn next piece
       spawnNewPiece();
       
-      // Check game over
       if (checkCollision(currentPiece, currentPosition)) {
         setGameOver(true);
         isGameActive.current = false;
@@ -218,16 +212,13 @@ const gameLoopRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const rotatePiece = useCallback((): void => {
     if (gameOver || isPaused) return;
     
-    // Rotate matrix
     const rotated = currentPiece[0].map((_, idx) => 
       currentPiece.map(row => row[idx]).reverse()
     );
     
-    // Kick handling (simple wall kick)
     if (!checkCollision(rotated, currentPosition)) {
       setCurrentPiece(rotated);
     } else {
-      // Try shifting left or right
       for (const dx of [-1, 1, -2, 2]) {
         const newPos = { x: currentPosition.x + dx, y: currentPosition.y };
         if (!checkCollision(rotated, newPos)) {
@@ -248,7 +239,7 @@ const gameLoopRef = useRef<NodeJS.Timeout | undefined>(undefined);
     }
   }, [movePiece, gameOver, isPaused]);
 
-  // Game tick (move piece down)
+  // Game tick
   const gameTick = useCallback((): void => {
     if (!gameOver && !isPaused) {
       movePiece(0, 1);
@@ -332,9 +323,10 @@ const gameLoopRef = useRef<NodeJS.Timeout | undefined>(undefined);
     setNextPiece(next.shape);
     setNextColor(next.color);
     
-    // Load high score from localStorage
-    const savedHighScore = localStorage.getItem('tetrisHighScore');
-    if (savedHighScore) setHighScore(parseInt(savedHighScore));
+    if (typeof window !== 'undefined') {
+      const savedHighScore = localStorage.getItem('tetrisHighScore');
+      if (savedHighScore) setHighScore(parseInt(savedHighScore));
+    }
   }, [initBoard, getRandomPiece]);
 
   // Initialize game
@@ -346,7 +338,6 @@ const gameLoopRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const renderBoard = (): number[][] => {
     const displayBoard = board.map(row => [...row]);
     
-    // Add current piece to display board
     for (let y = 0; y < currentPiece.length; y++) {
       for (let x = 0; x < currentPiece[0].length; x++) {
         if (currentPiece[y][x]) {
@@ -365,164 +356,537 @@ const gameLoopRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const displayBoard = renderBoard();
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white pb-12">
-      <div className="max-w-6xl mx-auto pt-8 px-4">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
-          <Link href="/" className="text-[#475569] hover:text-white transition-colors">
-            ← Back
-          </Link>
-          <h1 className="text-4xl font-black tracking-tighter text-purple-400">
-            TETRIS
-          </h1>
-          <div className="flex gap-4">
-            <div className="bg-[#12121a] border border-[#1e1e2e] rounded-xl px-4 py-2">
-              <span className="text-[#64748b] text-sm">🎯 SCORE</span>
-              <span className="ml-2 font-mono text-purple-400 text-xl">{score}</span>
-            </div>
-            <div className="bg-[#12121a] border border-[#1e1e2e] rounded-xl px-4 py-2">
-              <span className="text-[#64748b] text-sm">🏆 HIGH</span>
-              <span className="ml-2 font-mono text-yellow-400 text-xl">{highScore}</span>
+    <>
+      <style jsx>{`
+        /* Reset and base styles */
+        .tetris-page {
+          min-height: 100vh;
+          background: #0a0a0f;
+          color: white;
+          font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .tetris-wrapper {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 2rem 1rem 2rem;
+        }
+
+        /* Header styles */
+        .game-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 1rem;
+          margin-bottom: 2rem;
+        }
+
+        .back-link {
+          color: #475569;
+          text-decoration: none;
+          font-weight: 500;
+          transition: color 0.2s ease;
+          font-size: 0.9rem;
+        }
+
+        .back-link:hover {
+          color: white;
+        }
+
+        .game-title {
+          font-size: 2rem;
+          font-weight: 900;
+          letter-spacing: -0.025em;
+          background: linear-gradient(135deg, #a855f7, #d946ef);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+        }
+
+        @media (min-width: 768px) {
+          .game-title {
+            font-size: 2.5rem;
+          }
+        }
+
+        .stats-group {
+          display: flex;
+          gap: 0.75rem;
+        }
+
+        .stat-card {
+          background: #12121a;
+          border: 1px solid #1e1e2e;
+          border-radius: 0.75rem;
+          padding: 0.5rem 1rem;
+        }
+
+        .stat-label {
+          color: #64748b;
+          font-size: 0.75rem;
+        }
+
+        .stat-value {
+          font-family: monospace;
+          font-size: 1.25rem;
+          font-weight: bold;
+          margin-left: 0.5rem;
+        }
+
+        .score-value {
+          color: #a855f7;
+        }
+
+        .high-value {
+          color: #fbbf24;
+        }
+
+        /* Main game area */
+        .game-area {
+          display: flex;
+          justify-content: center;
+          align-items: flex-start;
+          gap: 1.5rem;
+          flex-wrap: wrap;
+        }
+
+        /* Board container */
+        .board-container {
+          background: #12121a;
+          border: 1px solid #1e1e2e;
+          border-radius: 1.5rem;
+          padding: 1.25rem;
+        }
+
+        .board-grid {
+          display: grid;
+          gap: 1px;
+          background: #1e1e2e;
+          padding: 1px;
+          margin: 0 auto;
+        }
+
+        .cell {
+          width: 30px;
+          height: 30px;
+          transition: all 0.075s ease;
+        }
+
+        /* Responsive board scaling for mobile */
+        @media (max-width: 640px) {
+          .cell {
+            width: 25px;
+            height: 25px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .cell {
+            width: 22px;
+            height: 22px;
+          }
+        }
+
+        /* Info panel */
+        .info-panel {
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+        }
+
+        .next-piece-card {
+          background: #12121a;
+          border: 1px solid #1e1e2e;
+          border-radius: 1rem;
+          padding: 1.25rem;
+          min-width: 160px;
+        }
+
+        .next-piece-title {
+          color: #64748b;
+          font-size: 0.75rem;
+          text-align: center;
+          margin-bottom: 1rem;
+          letter-spacing: 0.5px;
+        }
+
+        .next-piece-preview {
+          display: flex;
+          justify-content: center;
+        }
+
+        .next-grid {
+          display: grid;
+          gap: 1px;
+          background: #1e1e2e;
+          padding: 1px;
+        }
+
+        .next-cell {
+          width: 30px;
+          height: 30px;
+        }
+
+        @media (max-width: 640px) {
+          .next-cell {
+            width: 25px;
+            height: 25px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .next-cell {
+            width: 22px;
+            height: 22px;
+          }
+        }
+
+        .stats-card {
+          background: #12121a;
+          border: 1px solid #1e1e2e;
+          border-radius: 1rem;
+          padding: 1.25rem;
+        }
+
+        .stat-row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 0.5rem;
+        }
+
+        .stat-row:last-child {
+          margin-bottom: 0;
+        }
+
+        .stat-name {
+          color: #64748b;
+        }
+
+        .stat-number {
+          font-family: monospace;
+          color: #a855f7;
+          font-size: 1.25rem;
+          font-weight: bold;
+        }
+
+        .controls-card {
+          background: #12121a;
+          border: 1px solid #1e1e2e;
+          border-radius: 1rem;
+          padding: 1.25rem;
+        }
+
+        .controls-title {
+          color: #64748b;
+          font-size: 0.75rem;
+          margin-bottom: 0.75rem;
+          letter-spacing: 0.5px;
+        }
+
+        .control-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.8rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .control-key {
+          font-family: monospace;
+          font-weight: 600;
+        }
+
+        .control-desc {
+          color: #475569;
+        }
+
+        /* Buttons */
+        .buttons-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .pause-badge {
+          background: rgba(234, 179, 8, 0.1);
+          color: #fbbf24;
+          text-align: center;
+          padding: 0.5rem;
+          border-radius: 0.75rem;
+          font-weight: 600;
+          font-size: 0.875rem;
+        }
+
+        .btn {
+          width: 100%;
+          padding: 0.75rem;
+          border-radius: 0.75rem;
+          font-weight: bold;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-size: 0.9rem;
+        }
+
+        .btn-pause {
+          background: #1e1e2e;
+          color: white;
+        }
+
+        .btn-pause:hover {
+          background: #2a2a35;
+          transform: scale(1.02);
+        }
+
+        .btn-new {
+          background: #7c3aed;
+          color: white;
+        }
+
+        .btn-new:hover {
+          background: #8b5cf6;
+          transform: scale(1.02);
+        }
+
+        .btn:active {
+          transform: scale(0.98);
+        }
+
+        /* Modal */
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.9);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 50;
+          animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+          background: #12121a;
+          border: 1px solid #1e1e2e;
+          border-radius: 1.5rem;
+          padding: 2rem;
+          width: 90%;
+          max-width: 400px;
+          text-align: center;
+          animation: zoomIn 0.3s ease;
+        }
+
+        .modal-icon {
+          font-size: 4rem;
+          margin-bottom: 1rem;
+        }
+
+        .modal-title {
+          font-size: 2rem;
+          font-weight: 900;
+          margin-bottom: 0.75rem;
+        }
+
+        .modal-score {
+          font-size: 1.5rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .modal-score span {
+          color: #a855f7;
+        }
+
+        .modal-lines {
+          font-size: 0.875rem;
+          color: #64748b;
+          margin-bottom: 2rem;
+        }
+
+        .modal-btn {
+          background: #7c3aed;
+          color: white;
+          padding: 1rem;
+          border-radius: 1rem;
+          font-weight: bold;
+          font-size: 1rem;
+          width: 100%;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .modal-btn:hover {
+          background: #8b5cf6;
+          transform: scale(1.02);
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes zoomIn {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+      `}</style>
+
+      <div className="tetris-page">
+        <div className="tetris-wrapper">
+          {/* Header */}
+          <div className="game-header">
+            <Link href="/" className="back-link">
+              ← Back
+            </Link>
+            <h1 className="game-title">TETRIS</h1>
+            <div className="stats-group">
+              <div className="stat-card">
+                <span className="stat-label">🎯 SCORE</span>
+                <span className="stat-value score-value">{score}</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-label">🏆 HIGH</span>
+                <span className="stat-value high-value">{highScore}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex justify-center items-start gap-8 flex-wrap">
-          {/* Main Game Board */}
-          <div className="bg-[#12121a] border border-[#1e1e2e] rounded-3xl p-6">
-            <div 
-              className="grid gap-[1px] bg-[#1e1e2e] p-[1px]"
-              style={{
-                gridTemplateColumns: `repeat(${BOARD_WIDTH}, ${CELL_SIZE}px)`,
-              }}
-            >
-              {displayBoard.map((row, i) => (
-                row.map((cell, j) => (
-                  <div
-                    key={`${i}-${j}`}
-                    className="transition-all duration-75"
+          {/* Main Game Area */}
+          <div className="game-area">
+            {/* Game Board */}
+            <div className="board-container">
+              <div 
+                className="board-grid"
+                style={{
+                  gridTemplateColumns: `repeat(${BOARD_WIDTH}, minmax(0, 1fr))`,
+                  width: 'fit-content'
+                }}
+              >
+                {displayBoard.map((row, i) => (
+                  row.map((cell, j) => (
+                    <div
+                      key={`${i}-${j}`}
+                      className="cell"
+                      style={{
+                        backgroundColor: cell ? COLORS[cell - 1] : '#1a1a1f',
+                        boxShadow: cell ? 'inset 0 0 8px rgba(255,255,255,0.15)' : 'none'
+                      }}
+                    />
+                  ))
+                ))}
+              </div>
+            </div>
+
+            {/* Info Panel */}
+            <div className="info-panel">
+              {/* Next Piece */}
+              <div className="next-piece-card">
+                <div className="next-piece-title">NEXT PIECE</div>
+                <div className="next-piece-preview">
+                  <div 
+                    className="next-grid"
                     style={{
-                      width: CELL_SIZE,
-                      height: CELL_SIZE,
-                      backgroundColor: cell ? COLORS[cell - 1] : '#1a1a1f',
-                      boxShadow: cell ? 'inset 0 0 10px rgba(255,255,255,0.2)' : 'none'
+                      gridTemplateColumns: `repeat(${nextPiece[0]?.length || 2}, minmax(0, 1fr))`,
+                      width: 'fit-content'
                     }}
-                  />
-                ))
-              ))}
-            </div>
-          </div>
+                  >
+                    {nextPiece.map((row, i) => (
+                      row.map((cell, j) => (
+                        <div
+                          key={`next-${i}-${j}`}
+                          className="next-cell"
+                          style={{
+                            backgroundColor: cell ? nextColor : 'transparent',
+                            boxShadow: cell ? 'inset 0 0 8px rgba(255,255,255,0.15)' : 'none'
+                          }}
+                        />
+                      ))
+                    ))}
+                  </div>
+                </div>
+              </div>
 
-          {/* Info Panel */}
-          <div className="space-y-6">
-            {/* Next Piece */}
-            <div className="bg-[#12121a] border border-[#1e1e2e] rounded-2xl p-6">
-              <h3 className="text-[#64748b] text-sm mb-4 text-center">NEXT PIECE</h3>
-              <div className="flex justify-center">
-                <div 
-                  className="grid gap-[1px] bg-[#1e1e2e] p-[1px]"
-                  style={{
-                    gridTemplateColumns: `repeat(${nextPiece[0]?.length || 2}, 30px)`,
-                  }}
+              {/* Stats */}
+              <div className="stats-card">
+                <div className="stat-row">
+                  <span className="stat-name">Lines</span>
+                  <span className="stat-number">{lines}</span>
+                </div>
+                <div className="stat-row">
+                  <span className="stat-name">Level</span>
+                  <span className="stat-number">{level}</span>
+                </div>
+              </div>
+
+              {/* Controls */}
+              <div className="controls-card">
+                <div className="controls-title">CONTROLS</div>
+                <div className="control-row">
+                  <span className="control-key">← →</span>
+                  <span className="control-desc">Move</span>
+                </div>
+                <div className="control-row">
+                  <span className="control-key">↓</span>
+                  <span className="control-desc">Soft Drop</span>
+                </div>
+                <div className="control-row">
+                  <span className="control-key">↑</span>
+                  <span className="control-desc">Rotate</span>
+                </div>
+                <div className="control-row">
+                  <span className="control-key">Space</span>
+                  <span className="control-desc">Hard Drop</span>
+                </div>
+                <div className="control-row">
+                  <span className="control-key">P</span>
+                  <span className="control-desc">Pause</span>
+                </div>
+              </div>
+
+              <div className="buttons-group">
+                {isPaused && !gameOver && (
+                  <div className="pause-badge">⏸️ PAUSED</div>
+                )}
+                <button
+                  onClick={() => setIsPaused(prev => !prev)}
+                  className="btn btn-pause"
                 >
-                  {nextPiece.map((row, i) => (
-                    row.map((cell, j) => (
-                      <div
-                        key={`next-${i}-${j}`}
-                        style={{
-                          width: 30,
-                          height: 30,
-                          backgroundColor: cell ? nextColor : 'transparent',
-                          boxShadow: cell ? 'inset 0 0 10px rgba(255,255,255,0.2)' : 'none'
-                        }}
-                      />
-                    ))
-                  ))}
-                </div>
+                  {isPaused ? '▶️ RESUME' : '⏸️ PAUSE'}
+                </button>
+                <button
+                  onClick={startNewGame}
+                  className="btn btn-new"
+                >
+                   NEW GAME
+                </button>
               </div>
-            </div>
-
-            {/* Stats */}
-            <div className="bg-[#12121a] border border-[#1e1e2e] rounded-2xl p-6 space-y-3">
-              <div className="flex justify-between">
-                <span className="text-[#64748b]">Lines</span>
-                <span className="font-mono text-purple-400 text-xl">{lines}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#64748b]">Level</span>
-                <span className="font-mono text-purple-400 text-xl">{level}</span>
-              </div>
-            </div>
-
-            {/* Controls */}
-            <div className="bg-[#12121a] border border-[#1e1e2e] rounded-2xl p-6">
-              <h3 className="text-[#64748b] text-sm mb-3">CONTROLS</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>← →</span>
-                  <span className="text-[#475569]">Move</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>↓</span>
-                  <span className="text-[#475569]">Soft Drop</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>↑</span>
-                  <span className="text-[#475569]">Rotate</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Space</span>
-                  <span className="text-[#475569]">Hard Drop</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>P</span>
-                  <span className="text-[#475569]">Pause</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              {isPaused && !gameOver && (
-                <div className="text-center text-yellow-400 bg-yellow-400/10 rounded-xl py-2">
-                  ⏸️ PAUSED
-                </div>
-              )}
-              <button
-                onClick={() => setIsPaused(prev => !prev)}
-                className="w-full bg-[#1e1e2e] hover:bg-[#2a2a35] py-3 rounded-xl font-bold transition-all hover:scale-105 active:scale-95"
-              >
-                {isPaused ? '▶️ RESUME' : '⏸️ PAUSE'}
-              </button>
-              <button
-                onClick={startNewGame}
-                className="w-full bg-purple-600 hover:bg-purple-500 py-3 rounded-xl font-bold transition-all hover:scale-105 active:scale-95"
-              >
-                🔄 NEW GAME
-              </button>
             </div>
           </div>
         </div>
 
         {/* Game Over Modal */}
         {gameOver && (
-          <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
-            <div className="bg-[#12121a] border border-[#1e1e2e] rounded-3xl p-10 w-full max-w-sm text-center animate-in fade-in zoom-in duration-300">
-              <div className="text-6xl mb-4">💀</div>
-              <h2 className="text-4xl font-black mb-3">GAME OVER</h2>
-              <p className="text-2xl mb-2">Final Score: <span className="text-purple-400">{score}</span></p>
-              <p className="text-sm text-[#64748b] mb-8">Lines cleared: {lines}</p>
-              <button
-                onClick={startNewGame}
-                className="w-full bg-purple-600 hover:bg-purple-500 py-4 rounded-2xl font-bold text-lg transition-all hover:scale-105 active:scale-95"
-              >
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <div className="modal-icon">💀</div>
+              <h2 className="modal-title">GAME OVER</h2>
+              <p className="modal-score">
+                Final Score: <span>{score}</span>
+              </p>
+              <p className="modal-lines">Lines cleared: {lines}</p>
+              <button onClick={startNewGame} className="modal-btn">
                 Play Again
               </button>
             </div>
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 };
 
