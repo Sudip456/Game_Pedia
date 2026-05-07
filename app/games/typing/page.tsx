@@ -14,10 +14,24 @@ const TypingGame = () => {
   const [accuracy, setAccuracy] = useState(100);
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const textContainerRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Detect mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(
+        /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        window.innerWidth <= 768
+      );
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const fetchRandomText = async () => {
     setIsLoading(true);
@@ -92,7 +106,12 @@ const TypingGame = () => {
 
     await fetchRandomText();
 
-    setTimeout(() => inputRef.current?.focus(), 100);
+    setTimeout(() => {
+      inputRef.current?.focus();
+      if (textContainerRef.current) {
+        textContainerRef.current.scrollTop = 0;
+      }
+    }, 100);
   }, []);
 
   const startTimer = () => {
@@ -171,19 +190,6 @@ const TypingGame = () => {
     };
   }, []);
 
-  useEffect(() => {
-    if (textContainerRef.current && userInput.length < text.length) {
-      const currentCharElement = document.getElementById(`char-${userInput.length}`);
-      if (currentCharElement) {
-        currentCharElement.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-          inline: "center"
-        });
-      }
-    }
-  }, [userInput, text]);
-
   const renderText = () => {
     if (!text) return null;
     
@@ -195,15 +201,16 @@ const TypingGame = () => {
       if (index < userInput.length) {
         if (userInput[index] === char) {
           color = "#10b981"; 
-          bgColor = "rgba(16, 185, 129, 0.1)";
+          bgColor = "rgba(16, 185, 129, 0.15)";
         } else {
           color = "#ef4444"; 
           bgColor = "rgba(239, 68, 68, 0.15)";
+          borderBottom = "1px solid rgba(239, 68, 68, 0.3)";
         }
       } else if (index === userInput.length) {
         color = "#60a5fa";
         bgColor = "rgba(96, 165, 250, 0.2)";
-        borderBottom = "2px solid #60a5fa";
+        borderBottom = "3px solid #60a5fa";
       }
       
       return (
@@ -215,12 +222,13 @@ const TypingGame = () => {
             color: color,
             backgroundColor: bgColor,
             borderBottom: borderBottom,
-            padding: "2px 0",
+            padding: "4px 1px",
             margin: "0 1px",
             borderRadius: "4px",
-            transition: "all 0.1s ease",
             fontSize: "inherit",
-            fontFamily: "inherit"
+            fontFamily: "inherit",
+            transition: "none",
+            lineHeight: "1.8"
           }}
         >
           {char === " " ? "\u00A0\u00A0" : char}
@@ -237,22 +245,20 @@ const TypingGame = () => {
             ← Back
           </button>
           <button onClick={startNewGame} className="refresh-btn" disabled={isLoading}>
-            {isLoading ? "Loading..." : " New Texts"}
+            {isLoading ? "Loading..." : " New Text"}
           </button>
         </div>
 
         <div className="game-header">
-          <h1 className="game-title">
-             Typing Master
-          </h1>
+          <h1 className="game-title"> Typing Master</h1>
           <p className="game-subtitle">
             <span style={{ color: "#10b981" }}>Green</span> = Correct | 
             <span style={{ color: "#ef4444" }}> Red</span> = Wrong |
-            <span style={{ color: "#60a5fa" }}> Blue</span> = Next to type
+            <span style={{ color: "#60a5fa" }}> Blue</span> = Next
           </p>
           {apiError && (
-            <p style={{ color: "#f59e0b", fontSize: "0.75rem", marginTop: "0.5rem" }}>
-              ⚡ Using fast local mode (API issue)
+            <p style={{ color: "#f59e0b", fontSize: "0.7rem", marginTop: "0.5rem" }}>
+              ⚡ Offline mode active
             </p>
           )}
         </div>
@@ -272,11 +278,12 @@ const TypingGame = () => {
           </div>
         </div>
 
+        {/* Fixed height text container - NO SHAKING */}
         <div className="text-display" ref={textContainerRef}>
           {isLoading ? (
             <div className="loading-state">
               <div className="spinner"></div>
-              Loading fresh text...
+              Loading text...
             </div>
           ) : (
             <div className="text-content">
@@ -285,17 +292,20 @@ const TypingGame = () => {
           )}
         </div>
 
-        <input
-          ref={inputRef}
-          type="text"
-          value={userInput}
-          onChange={handleInput}
-          disabled={isFinished || isLoading}
-          className="game-input"
-          placeholder="Start typing here to see colors change..."
-          autoComplete="off"
-          spellCheck="false"
-        />
+        {/* Input box - always visible below text */}
+        <div className="input-wrapper">
+          <input
+            ref={inputRef}
+            type="text"
+            value={userInput}
+            onChange={handleInput}
+            disabled={isFinished || isLoading}
+            className="game-input"
+            placeholder={isMobile ? "Tap here and start typing..." : "Start typing here..."}
+            autoComplete="off"
+            spellCheck="false"
+          />
+        </div>
 
         <div className="button-group">
           {isStarted && !isFinished && (
@@ -303,7 +313,6 @@ const TypingGame = () => {
               Stop Test
             </button>
           )}
-
           {isFinished && (
             <button onClick={startNewGame} className="btn btn-primary">
               Try Again
@@ -334,64 +343,60 @@ const TypingGame = () => {
       </div>
 
       <style jsx>{`
+        * {
+          box-sizing: border-box;
+        }
+
         .typing-game {
           min-height: 100vh;
           background: linear-gradient(135deg, #0a0a0f 0%, #0f0f1a 100%);
-          padding: 1rem;
+          padding: 0.5rem;
         }
 
         .game-container {
-          max-width: 1200px;
+          max-width: 1000px;
           margin: 0 auto;
-          padding: 1rem;
+          padding: 0.5rem;
         }
 
-        /* Top Bar with Back Button */
+        /* Top Bar */
         .top-bar {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 2rem;
-          gap: 1rem;
+          margin-bottom: 1rem;
+          gap: 0.5rem;
         }
 
         .back-btn {
           background: rgba(55, 65, 81, 0.8);
           backdrop-filter: blur(10px);
           border: 1px solid rgba(96, 165, 250, 0.3);
-          padding: 0.6rem 1.2rem;
+          padding: 0.5rem 1rem;
           border-radius: 0.75rem;
           color: white;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
         }
 
-        .back-btn:hover {
-          background: rgba(96, 165, 250, 0.2);
-          border-color: #60a5fa;
-          transform: translateX(-3px);
+        .back-btn:active {
+          transform: scale(0.96);
         }
 
         .refresh-btn {
           background: linear-gradient(135deg, #3b82f6, #8b5cf6);
           border: none;
-          padding: 0.6rem 1.2rem;
+          padding: 0.5rem 1rem;
           border-radius: 0.75rem;
           color: white;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.2s ease;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
         }
 
-        .refresh-btn:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
+        .refresh-btn:active {
+          transform: scale(0.96);
         }
 
         .refresh-btn:disabled {
@@ -399,31 +404,45 @@ const TypingGame = () => {
           cursor: not-allowed;
         }
 
+        /* Header */
         .game-header {
           text-align: center;
-          margin-bottom: 2rem;
+          margin-bottom: 1rem;
         }
 
         .game-title {
-          font-size: 2.5rem;
+          font-size: 1.8rem;
           font-weight: 800;
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.25rem;
           background: linear-gradient(135deg, #60a5fa, #a78bfa);
           -webkit-background-clip: text;
           background-clip: text;
           color: transparent;
         }
 
-        .game-subtitle {
-          color: #9ca3af;
-          font-size: 0.9rem;
+        @media (min-width: 768px) {
+          .game-title {
+            font-size: 2.2rem;
+          }
         }
 
+        .game-subtitle {
+          color: #9ca3af;
+          font-size: 0.7rem;
+        }
+
+        @media (min-width: 768px) {
+          .game-subtitle {
+            font-size: 0.85rem;
+          }
+        }
+
+        /* Stats Panel */
         .stats-panel {
           display: flex;
           justify-content: center;
-          gap: 2rem;
-          margin-bottom: 2rem;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
           flex-wrap: wrap;
         }
 
@@ -431,77 +450,93 @@ const TypingGame = () => {
           text-align: center;
           background: rgba(17, 24, 39, 0.6);
           backdrop-filter: blur(10px);
-          padding: 1rem 2rem;
-          border-radius: 1rem;
+          padding: 0.5rem 1rem;
+          border-radius: 0.75rem;
           border: 1px solid rgba(55, 65, 81, 0.5);
-          min-width: 100px;
+          min-width: 70px;
+        }
+
+        @media (min-width: 768px) {
+          .stat-card {
+            padding: 0.75rem 1.5rem;
+            min-width: 100px;
+          }
         }
 
         .stat-value {
-          font-size: 2rem;
+          font-size: 1.3rem;
           font-weight: bold;
           color: #60a5fa;
         }
 
+        @media (min-width: 768px) {
+          .stat-value {
+            font-size: 1.8rem;
+          }
+        }
+
         .stat-label {
-          font-size: 0.7rem;
+          font-size: 0.6rem;
           color: #6b7280;
           letter-spacing: 0.05em;
         }
 
+        /* Text Display - FIXED HEIGHT, NO SHAKING */
         .text-display {
           background: rgba(17, 24, 39, 0.8);
           backdrop-filter: blur(10px);
-          border-radius: 1.5rem;
-          padding: 1.5rem;
-          margin-bottom: 1.5rem;
+          border-radius: 1rem;
+          padding: 1rem;
+          margin-bottom: 1rem;
           border: 1px solid rgba(55, 65, 81, 0.5);
           height: 250px;
           overflow-y: auto;
           overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
         }
 
         @media (min-width: 768px) {
           .text-display {
             height: 300px;
-            padding: 2rem;
+            padding: 1.5rem;
           }
         }
 
         .text-content {
           font-family: 'Courier New', 'Fira Code', monospace;
-          font-size: 1.25rem;
+          font-size: 1rem;
           line-height: 1.8;
           letter-spacing: 0.02em;
           white-space: pre-wrap;
-          word-break: break-all;
+          word-break: break-word;
         }
 
         @media (min-width: 640px) {
           .text-content {
-            font-size: 1.375rem;
+            font-size: 1.15rem;
           }
         }
 
         @media (min-width: 1024px) {
           .text-content {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
           }
         }
 
+        /* Loading State */
         .loading-state {
           text-align: center;
           color: #6b7280;
-          padding: 3rem;
+          padding: 2rem;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 1rem;
+          gap: 0.8rem;
         }
 
         .spinner {
-          width: 40px;
-          height: 40px;
+          width: 30px;
+          height: 30px;
           border: 3px solid rgba(96, 165, 250, 0.3);
           border-top-color: #60a5fa;
           border-radius: 50%;
@@ -512,24 +547,29 @@ const TypingGame = () => {
           to { transform: rotate(360deg); }
         }
 
+        /* Input Wrapper - ALWAYS VISIBLE */
+        .input-wrapper {
+          width: 100%;
+          margin-bottom: 1rem;
+        }
+
         .game-input {
           width: 100%;
-          background: rgba(17, 24, 39, 0.8);
-          backdrop-filter: blur(10px);
+          background: rgba(17, 24, 39, 0.95);
           border: 2px solid #374151;
           border-radius: 1rem;
-          padding: 1rem 1.5rem;
-          font-size: 1rem;
+          padding: 0.8rem 1rem;
+          font-size: 0.9rem;
           color: #f3f4f6;
           outline: none;
           transition: all 0.2s ease;
-          margin-bottom: 1.5rem;
+          box-sizing: border-box;
         }
 
         @media (min-width: 768px) {
           .game-input {
-            font-size: 1.125rem;
-            padding: 1.25rem 1.75rem;
+            font-size: 1rem;
+            padding: 1rem 1.5rem;
           }
         }
 
@@ -543,30 +583,35 @@ const TypingGame = () => {
           cursor: not-allowed;
         }
 
+        /* Button Group */
         .button-group {
           display: flex;
           justify-content: center;
-          gap: 1rem;
+          gap: 0.8rem;
           flex-wrap: wrap;
-          margin-bottom: 2rem;
+          margin-bottom: 1rem;
         }
 
         .btn {
-          padding: 0.75rem 1.5rem;
+          padding: 0.6rem 1.2rem;
           border-radius: 0.75rem;
           font-weight: 600;
-          font-size: 0.875rem;
+          font-size: 0.85rem;
           cursor: pointer;
           transition: all 0.2s ease;
           border: none;
           outline: none;
         }
 
-        @media (min-width: 640px) {
+        @media (min-width: 768px) {
           .btn {
-            padding: 0.875rem 2rem;
-            font-size: 1rem;
+            padding: 0.75rem 1.8rem;
+            font-size: 0.95rem;
           }
+        }
+
+        .btn:active {
+          transform: scale(0.96);
         }
 
         .btn-primary {
@@ -574,27 +619,18 @@ const TypingGame = () => {
           color: white;
         }
 
-        .btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4);
-        }
-
         .btn-danger {
           background: #dc2626;
           color: white;
         }
 
-        .btn-danger:hover {
-          background: #b91c1c;
-          transform: translateY(-2px);
-        }
-
+        /* Results Card */
         .results-card {
           background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
           backdrop-filter: blur(10px);
           border: 1px solid rgba(96, 165, 250, 0.3);
-          border-radius: 1.5rem;
-          padding: 1.5rem;
+          border-radius: 1rem;
+          padding: 1rem;
           text-align: center;
           animation: slideUp 0.3s ease;
         }
@@ -611,22 +647,23 @@ const TypingGame = () => {
         }
 
         .results-title {
-          font-size: 1.5rem;
+          font-size: 1.1rem;
           font-weight: bold;
-          margin-bottom: 1.5rem;
+          margin-bottom: 0.8rem;
           color: #f3f4f6;
         }
 
         @media (min-width: 768px) {
           .results-title {
-            font-size: 2rem;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
           }
         }
 
         .results-grid {
           display: flex;
           justify-content: center;
-          gap: 2rem;
+          gap: 1.2rem;
           flex-wrap: wrap;
         }
 
@@ -635,63 +672,62 @@ const TypingGame = () => {
         }
 
         .result-value {
-          font-size: 2rem;
+          font-size: 1.3rem;
           font-weight: bold;
           color: #60a5fa;
         }
 
         @media (min-width: 768px) {
           .result-value {
-            font-size: 2.5rem;
+            font-size: 1.8rem;
           }
         }
 
         .result-label {
-          font-size: 0.75rem;
+          font-size: 0.65rem;
           color: #9ca3af;
           letter-spacing: 0.05em;
         }
 
+        /* Scrollbar */
         .text-display::-webkit-scrollbar {
-          width: 8px;
-          height: 8px;
+          width: 6px;
+          height: 6px;
         }
 
         .text-display::-webkit-scrollbar-track {
           background: rgba(55, 65, 81, 0.3);
-          border-radius: 4px;
+          border-radius: 3px;
         }
 
         .text-display::-webkit-scrollbar-thumb {
           background: #60a5fa;
-          border-radius: 4px;
+          border-radius: 3px;
         }
 
+        /* Mobile Specific */
         @media (max-width: 640px) {
-          .stats-panel {
-            gap: 1rem;
+          .typing-game {
+            padding: 0.25rem;
           }
           
-          .stat-card {
-            padding: 0.75rem 1rem;
-            min-width: 80px;
+          .game-container {
+            padding: 0.25rem;
           }
           
-          .stat-value {
-            font-size: 1.5rem;
-          }
-          
-          .top-bar {
-            margin-bottom: 1rem;
-          }
-          
-          .back-btn, .refresh-btn {
-            padding: 0.5rem 1rem;
-            font-size: 0.8rem;
+          .text-display {
+            height: 200px;
+            padding: 0.75rem;
           }
           
           .text-content {
-            font-size: 1rem;
+            font-size: 0.85rem;
+            line-height: 1.6;
+          }
+          
+          .game-input {
+            padding: 0.7rem 0.9rem;
+            font-size: 0.85rem;
           }
         }
       `}</style>

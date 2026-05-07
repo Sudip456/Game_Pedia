@@ -34,6 +34,7 @@ export default function Navbar() {
               fontFamily: "'Orbitron', monospace",
               fontSize: "1.4rem",
               fontWeight: 900,
+              marginRight:"1rem",
               background: "linear-gradient(135deg, #6c63ff, #06b6d4)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
@@ -44,35 +45,7 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Nav links */}
-        <div style={{ display: "flex", gap: 32, alignItems: "center" }}>
-          <Link href="/" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.9rem", fontFamily: "'Exo 2', sans-serif", transition: "color 0.2s" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "#e2e8f0")}
-            onMouseLeave={e => (e.currentTarget.style.color = "#94a3b8")}
-          >
-            Home
-          </Link>
-          <Link href="/#games" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.9rem", fontFamily: "'Exo 2', sans-serif", transition: "color 0.2s" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "#e2e8f0")}
-            onMouseLeave={e => (e.currentTarget.style.color = "#94a3b8")}
-          >
-            All Games
-          </Link>
-          <span
-            style={{
-              background: "linear-gradient(135deg, #6c63ff22, #8b5cf622)",
-              border: "1px solid #6c63ff44",
-              borderRadius: 20,
-              color: "#a78bfa",
-              fontSize: "0.75rem",
-              fontFamily: "'Orbitron', monospace",
-              padding: "4px 12px",
-              letterSpacing: "0.08em",
-            }}
-          >
-            FREE
-          </span>
-        </div>
+        
       </div>
     </nav>
   );

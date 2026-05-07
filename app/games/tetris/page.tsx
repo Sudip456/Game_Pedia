@@ -66,9 +66,24 @@ const Tetris: React.FC = () => {
   const [nextPiece, setNextPiece] = useState<number[][]>([]);
   const [nextColor, setNextColor] = useState<string>('');
   const [highScore, setHighScore] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   
   const gameLoopRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const isGameActive = useRef(false);
+  const touchStartTime = useRef<number>(0);
+
+  // Check if device is mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(
+        /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        window.innerWidth <= 768
+      );
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Initialize board
   const initBoard = useCallback((): number[][] => {
@@ -246,7 +261,7 @@ const Tetris: React.FC = () => {
     }
   }, [movePiece, gameOver, isPaused]);
 
-  // Keyboard controls
+  // Keyboard controls (for desktop)
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent): void => {
       if (gameOver) return;
@@ -355,10 +370,27 @@ const Tetris: React.FC = () => {
 
   const displayBoard = renderBoard();
 
+  // Handle touch for hard drop (long press)
+  const handleTouchStart = (e: React.TouchEvent, action: () => void, isLongPress?: boolean) => {
+    if (isLongPress) {
+      touchStartTime.current = Date.now();
+    } else {
+      e.preventDefault();
+      action();
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent, action: () => void) => {
+    const duration = Date.now() - touchStartTime.current;
+    if (duration > 300) {
+      action(); // Hard drop on long press
+    }
+    touchStartTime.current = 0;
+  };
+
   return (
     <>
       <style jsx>{`
-        /* Reset and base styles */
         .tetris-page {
           min-height: 100vh;
           background: #0a0a0f;
@@ -372,7 +404,6 @@ const Tetris: React.FC = () => {
           padding: 2rem 1rem 2rem;
         }
 
-        /* Header styles */
         .game-header {
           display: flex;
           justify-content: space-between;
@@ -442,7 +473,6 @@ const Tetris: React.FC = () => {
           color: #fbbf24;
         }
 
-        /* Main game area */
         .game-area {
           display: flex;
           justify-content: center;
@@ -451,7 +481,6 @@ const Tetris: React.FC = () => {
           flex-wrap: wrap;
         }
 
-        /* Board container */
         .board-container {
           background: #12121a;
           border: 1px solid #1e1e2e;
@@ -473,7 +502,6 @@ const Tetris: React.FC = () => {
           transition: all 0.075s ease;
         }
 
-        /* Responsive board scaling for mobile */
         @media (max-width: 640px) {
           .cell {
             width: 25px;
@@ -488,7 +516,47 @@ const Tetris: React.FC = () => {
           }
         }
 
-        /* Info panel */
+        /* Mobile Arrow Controls - Just 4 buttons */
+        .mobile-controls {
+          margin-top: 1rem;
+          display: ${isMobile ? 'flex' : 'none'};
+          justify-content: center;
+          gap: 1rem;
+        }
+
+        .arrow-btn {
+          background: linear-gradient(135deg, #1e1e2e, #12121a);
+          border: 2px solid #2a2a35;
+          border-radius: 1rem;
+          padding: 1rem 1.5rem;
+          font-size: 2rem;
+          font-weight: bold;
+          color: white;
+          cursor: pointer;
+          transition: all 0.05s linear;
+          user-select: none;
+          touch-action: manipulation;
+          min-width: 80px;
+        }
+
+        .arrow-btn:active {
+          transform: scale(0.92);
+          background: linear-gradient(135deg, #2a2a35, #1e1e2e);
+        }
+
+        .up-btn {
+          background: linear-gradient(135deg, #7c3aed, #6d28d9);
+          border-color: #8b5cf6;
+        }
+
+        @media (max-width: 480px) {
+          .arrow-btn {
+            padding: 0.75rem 1rem;
+            font-size: 1.5rem;
+            min-width: 65px;
+          }
+        }
+
         .info-panel {
           display: flex;
           flex-direction: column;
@@ -600,7 +668,6 @@ const Tetris: React.FC = () => {
           color: #475569;
         }
 
-        /* Buttons */
         .buttons-group {
           display: flex;
           flex-direction: column;
@@ -652,7 +719,6 @@ const Tetris: React.FC = () => {
           transform: scale(0.98);
         }
 
-        /* Modal */
         .modal-overlay {
           position: fixed;
           inset: 0;
@@ -738,7 +804,6 @@ const Tetris: React.FC = () => {
 
       <div className="tetris-page">
         <div className="tetris-wrapper">
-          {/* Header */}
           <div className="game-header">
             <Link href="/" className="back-link">
               ← Back
@@ -756,9 +821,7 @@ const Tetris: React.FC = () => {
             </div>
           </div>
 
-          {/* Main Game Area */}
           <div className="game-area">
-            {/* Game Board */}
             <div className="board-container">
               <div 
                 className="board-grid"
@@ -780,11 +843,41 @@ const Tetris: React.FC = () => {
                   ))
                 ))}
               </div>
+
+              {/* Mobile Controls - Just 4 Arrow Buttons */}
+              <div className="mobile-controls">
+                <button 
+                  className="arrow-btn"
+                  onClick={() => movePiece(-1, 0)}
+                  onTouchStart={(e) => { e.preventDefault(); movePiece(-1, 0); }}
+                >
+                  ←
+                </button>
+                <button 
+                  className="arrow-btn"
+                  onClick={() => movePiece(0, 1)}
+                  onTouchStart={(e) => { e.preventDefault(); movePiece(0, 1); }}
+                >
+                  ↓
+                </button>
+                <button 
+                  className="arrow-btn"
+                  onClick={() => movePiece(1, 0)}
+                  onTouchStart={(e) => { e.preventDefault(); movePiece(1, 0); }}
+                >
+                  →
+                </button>
+                <button 
+                  className="arrow-btn up-btn"
+                  onClick={() => rotatePiece()}
+                  onTouchStart={(e) => { e.preventDefault(); rotatePiece(); }}
+                >
+                  ↑
+                </button>
+              </div>
             </div>
 
-            {/* Info Panel */}
             <div className="info-panel">
-              {/* Next Piece */}
               <div className="next-piece-card">
                 <div className="next-piece-title">NEXT PIECE</div>
                 <div className="next-piece-preview">
@@ -811,7 +904,6 @@ const Tetris: React.FC = () => {
                 </div>
               </div>
 
-              {/* Stats */}
               <div className="stats-card">
                 <div className="stat-row">
                   <span className="stat-name">Lines</span>
@@ -823,7 +915,6 @@ const Tetris: React.FC = () => {
                 </div>
               </div>
 
-              {/* Controls */}
               <div className="controls-card">
                 <div className="controls-title">CONTROLS</div>
                 <div className="control-row">
@@ -850,13 +941,13 @@ const Tetris: React.FC = () => {
 
               <div className="buttons-group">
                 {isPaused && !gameOver && (
-                  <div className="pause-badge">⏸️ PAUSED</div>
+                  <div className="pause-badge"> PAUSED</div>
                 )}
                 <button
                   onClick={() => setIsPaused(prev => !prev)}
                   className="btn btn-pause"
                 >
-                  {isPaused ? '▶️ RESUME' : '⏸️ PAUSE'}
+                  {isPaused ? ' RESUME' : ' PAUSE'}
                 </button>
                 <button
                   onClick={startNewGame}
@@ -869,7 +960,6 @@ const Tetris: React.FC = () => {
           </div>
         </div>
 
-        {/* Game Over Modal */}
         {gameOver && (
           <div className="modal-overlay">
             <div className="modal-content">

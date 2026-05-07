@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 
-// 120+ 5-Letter Words
+// 300+ 5-Letter Words
 const WORD_LIST = [
     "CRANE", "SLATE", "TRACE", "BRAIN", "HEART", "FLAME", "GHOST", "STONE", "RIVER", "LIGHT",
     "DREAM", "STORM", "PEACE", "MUSIC", "NIGHT", "OCEAN", "POWER", "QUEEN", "SHINE", "TOWER",
@@ -15,7 +15,25 @@ const WORD_LIST = [
     "CHARM", "DRIFT", "EAGER", "FANCY", "GLORY", "HAPPY", "INPUT", "JUMPY", "KNELT", "LATER",
     "MERRY", "PROUD", "QUICK", "ROAST", "SMART", "TRULY", "UPSET", "VITAL", "WIDOW", "YOUNG",
     "ABOVE", "BELOW", "CRAVE", "DRINK", "EVOKE", "FLAIR", "HUMOR", "IDEAL", "JOLLY", "KARMA",
-    "LUNAR", "METAL", "NOBLE", "OCEAN", "PEACE", "RIVER", "STORM", "TIGER", "VOICE", "WHALE"
+    "LUNAR", "METAL", "TRUTH", "BRIGHT", "CLEAR", "FIELD", "GRASS", "ANGEL", "ARROW", "BERRY",
+    "BLAST", "BLESS", "BLOOM", "BLUSH", "BOOST", "BRING", "BROWN", "BURST", "CARRY", "CHASE",
+    "CHEST", "CHILL", "CLEAN", "CLIMB", "CLOSE", "COAST", "COULD", "COUNT", "COVER", "CRAFT",
+    "CRASH", "CRAZY", "CROSS", "CROWD", "CROWN", "CRUSH", "CURVE", "CYCLE", "DAILY", "DROVE",
+    "EARLY", "EIGHT", "EMPTY", "ENTER", "EQUAL", "ERROR", "EVENT", "EVERY", "EXACT", "EXIST",
+    "EXTRA", "FAITH", "FALSE", "FAULT", "FIGHT", "FINAL", "FIRST", "FLOAT", "FLOOD", "FLOOR",
+    "FOCUS", "FORCE", "FORTH", "FORTY", "FORUM", "FOUND", "FRAME", "FRANK", "FRAUD", "FRESH",
+    "FRONT", "FRUIT", "FULLY", "FUNNY", "GIVEN", "GLASS", "GLOBE", "GOING", "GRACE", "GRADE",
+    "GRAND", "GRANT", "GRAVE", "GREAT", "GREEN", "GROSS", "GROUP", "GROWN", "GUARD", "GUESS",
+    "GUEST", "GUIDE", "HEAVY", "HENCE", "HORSE", "HOTEL", "HUMAN", "IMPLY", "INDEX", "INNER",
+    "ISSUE", "JOINT", "JUDGE", "KNOWN", "LABEL", "LARGE", "LASER", "LAUGH", "LAYER", "LEARN",
+    "LEASE", "LEAST", "LEAVE", "LEGAL", "LEVEL", "LEWIS", "LIMIT", "LINKS", "LIVES", "LOCAL",
+    "LOGIC", "LOOSE", "LOWER", "LUCKY", "LUNCH", "LYING", "MAJOR", "MANGO", "MATCH", "MAYBE",
+    "MINOR", "MONEY", "MONTH", "MORAL", "MOTOR", "MOUSE", "MOUTH", "MOVED", "MOVIE", "NEEDS",
+    "NEVER", "NEWLY", "NOISE", "NORTH", "NOTED", "NUMBER", "OCCUR", "OFFER", "OFTEN", "ORDER",
+    "OTHER", "OUGHT", "OUTER", "OWNED", "OWNER", "PAINT", "PANEL", "PAPER", "PARIS", "PARTY",
+    "PHASE", "PHONE", "PHOTO", "PIECE", "PILOT", "PITCH", "PLACE", "PLAIN", "PLANE", "PLANT",
+    "PLATE", "PLAZA", "POINT", "POUND", "PRESS", "PRICE", "PRIDE", "PRIME", "PRINT", "PRIOR",
+    "PRIZE", "PROOF", "PROVE", "RADIO", "RAISE", "RANGE", "RATIO", "REACH", "READY", "REALM"
 ];
 
 export default function WordFill() {
@@ -27,6 +45,22 @@ export default function WordFill() {
     const [gameOver, setGameOver] = useState(false);
     const [message, setMessage] = useState("");
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+    const [isMobile, setIsMobile] = useState(false);
+
+    const hiddenInputRef = useRef<HTMLInputElement>(null);
+
+    // Detect mobile
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(
+                /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                window.innerWidth <= 768
+            );
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     const getRandomWord = () => {
         const randomWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
@@ -43,6 +77,13 @@ export default function WordFill() {
         setUserInput(Array(5).fill(""));
         setAttempts(4);
         setSelectedIndex(null);
+        
+        // Focus hidden input on new game for mobile
+        setTimeout(() => {
+            if (hiddenInputRef.current && isMobile) {
+                hiddenInputRef.current.focus();
+            }
+        }, 100);
     };
 
     useEffect(() => {
@@ -50,33 +91,62 @@ export default function WordFill() {
     }, []);
 
     const handleBoxClick = (index: number) => {
-        if (revealed[index]) return;
+        if (revealed[index] || gameOver) return;
         setSelectedIndex(index);
+        // Focus the hidden input to keep keyboard open
+        if (hiddenInputRef.current) {
+            hiddenInputRef.current.focus();
+        }
     };
 
-    // Keyboard Input
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (selectedIndex === null || gameOver) return;
+    // Handle input from hidden input field (works for both mobile and desktop)
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        if (selectedIndex === null || gameOver) {
+            if (hiddenInputRef.current) hiddenInputRef.current.value = "";
+            return;
+        }
+        if (revealed[selectedIndex]) return;
 
-            if (e.key === "Backspace") {
+        if (value.length > 0) {
+            const lastChar = value.slice(-1).toUpperCase();
+            if (/^[A-Z]$/.test(lastChar)) {
                 const newInput = [...userInput];
-                newInput[selectedIndex] = "";
+                newInput[selectedIndex] = lastChar;
                 setUserInput(newInput);
-            } else if (/^[a-zA-Z]$/.test(e.key)) {
-                const newInput = [...userInput];
-                newInput[selectedIndex] = e.key.toUpperCase();
-                setUserInput(newInput);
-
+                
+                // Auto move to next empty box
                 let next = selectedIndex + 1;
                 while (next < 5 && (revealed[next] || newInput[next])) next++;
-                setSelectedIndex(next < 5 ? next : null);
+                if (next < 5) {
+                    setSelectedIndex(next);
+                } else {
+                    setSelectedIndex(null);
+                }
             }
-        };
+            // Clear the input field after processing
+            if (hiddenInputRef.current) hiddenInputRef.current.value = "";
+        }
+    };
 
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [selectedIndex, userInput, revealed, gameOver]);
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (selectedIndex === null || gameOver) return;
+        if (revealed[selectedIndex]) return;
+
+        if (e.key === "Backspace" || e.key === "Delete") {
+            e.preventDefault();
+            const newInput = [...userInput];
+            newInput[selectedIndex] = "";
+            setUserInput(newInput);
+            
+            // Move to previous box
+            let prev = selectedIndex - 1;
+            while (prev >= 0 && (revealed[prev] || userInput[prev])) prev--;
+            if (prev >= 0) {
+                setSelectedIndex(prev);
+            }
+        }
+    };
 
     const getFullGuess = () => {
         return Array(5).fill("").map((_, i) => revealed[i] || userInput[i] || "").join("");
@@ -102,6 +172,7 @@ export default function WordFill() {
             const remaining = attempts - 1;
             setAttempts(remaining);
             setUserInput(Array(5).fill(""));
+            setSelectedIndex(null);
 
             if (remaining <= 0) {
                 setGameOver(true);
@@ -110,6 +181,13 @@ export default function WordFill() {
                 setTimeout(() => setMessage(""), 1600);
             }
         }
+        
+        // Keep focus on hidden input
+        setTimeout(() => {
+            if (hiddenInputRef.current && !gameOver) {
+                hiddenInputRef.current.focus();
+            }
+        }, 50);
     };
 
     const restartGame = () => {
@@ -130,6 +208,7 @@ export default function WordFill() {
                     background: linear-gradient(135deg, #0a0a0f 0%, #000000 100%);
                     color: white;
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+                    position: relative;
                 }
 
                 .main-wrapper {
@@ -138,7 +217,6 @@ export default function WordFill() {
                     padding: 2rem 1rem;
                 }
 
-                /* Header Styles */
                 .header {
                     display: flex;
                     justify-content: space-between;
@@ -202,7 +280,6 @@ export default function WordFill() {
                     margin-bottom: 0.25rem;
                 }
 
-
                 .boxes-container {
                     display: flex;
                     gap: 1rem;
@@ -226,6 +303,7 @@ export default function WordFill() {
                     background: rgba(31, 41, 55, 0.8);
                     color: white;
                     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                    user-select: none;
                 }
 
                 .box.revealed {
@@ -242,9 +320,8 @@ export default function WordFill() {
                     box-shadow: 0 0 0 2px #10b981, 0 10px 15px -3px rgba(16, 185, 129, 0.3);
                 }
 
-                .box:not(.revealed):hover {
-                    border-color: #10b981;
-                    background: rgba(55, 65, 81, 0.8);
+                .box:not(.revealed):active {
+                    transform: scale(0.96);
                 }
 
                 .attempts-container {
@@ -278,11 +355,6 @@ export default function WordFill() {
                     box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3);
                 }
 
-                .check-button:hover {
-                    background: linear-gradient(135deg, #10b981, #059669);
-                    transform: scale(1.02);
-                }
-
                 .check-button:active {
                     transform: scale(0.98);
                 }
@@ -292,6 +364,23 @@ export default function WordFill() {
                     color: #6b7280;
                     margin-top: 1.5rem;
                     font-size: 0.875rem;
+                }
+
+                /* Hidden input - always present, never moves */
+                .hidden-input {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 1px;
+                    height: 1px;
+                    opacity: 0;
+                    pointer-events: none;
+                    z-index: -1;
+                }
+
+                /* Make hidden input focusable but invisible for mobile */
+                .hidden-input:focus {
+                    outline: none;
                 }
 
                 .toast {
@@ -373,12 +462,10 @@ export default function WordFill() {
                     transition: all 0.2s;
                 }
 
-                .restart-button:hover {
-                    background: linear-gradient(135deg, #34d399, #10b981);
-                    transform: scale(1.02);
+                .restart-button:active {
+                    transform: scale(0.98);
                 }
 
-                
                 @keyframes slideDown {
                     from {
                         opacity: 0;
@@ -457,21 +544,21 @@ export default function WordFill() {
                         font-size: 2rem;
                     }
                 }
-
-                @media (min-width: 1024px) {
-                    .main-wrapper {
-                        max-width: 700px;
-                    }
-
-                    .box {
-                        width: 100px;
-                        height: 110px;
-                        font-size: 3rem;
-                    }
-                }
             `}</style>
 
             <div className="game-container">
+                {/* Permanent hidden input - never removed, always ready */}
+                <input
+                    ref={hiddenInputRef}
+                    type="text"
+                    className="hidden-input"
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
+                    autoComplete="off"
+                    spellCheck="false"
+                    inputMode="text"
+                />
+
                 <div className="main-wrapper">
                     <div className="header">
                         <Link href="/" className="back-link">
@@ -511,7 +598,9 @@ export default function WordFill() {
                     </div>
 
                     <p className="helper-text">
-                         Tap an empty box → Type on keyboard 
+                        {isMobile 
+                            ? "📱 Tap any empty box → Type on keyboard" 
+                            : "💻 Click an empty box → Type on keyboard"}
                     </p>
                 </div>
 

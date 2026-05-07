@@ -13,11 +13,18 @@ export default function FlappyBirdPage() {
   const [best, setBest] = useState(0);
   const [status, setStatus] = useState<"idle" | "playing" | "dead">("idle");
 
+  // Detect if device is mobile
+  const isMobile = useRef(
+    typeof window !== 'undefined' && 
+    (/Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+     (window.innerWidth <= 768))
+  );
+
   const gameRef = useRef({
     birdY: H / 2 - 30,
     birdVY: 0,
     gravity: 0.38,        
-    flapStrength: -6,   
+    flapStrength: isMobile.current ? -4.2 : -6,   // Reduced jump on mobile (no shake!)
     rotation: 0,
     pipes: [] as { x: number; top: number; passed: boolean }[],
     clouds: [] as { x: number; y: number; size: number }[],
@@ -111,8 +118,6 @@ export default function FlappyBirdPage() {
     ctx.fill();
 
     ctx.restore();
-
- 
   }, []);
 
   const gameLoop = useCallback(() => {
@@ -172,13 +177,15 @@ export default function FlappyBirdPage() {
 
   const flap = useCallback(() => {
     const g = gameRef.current;
-    if (g.running) g.birdVY = g.flapStrength;
+    if (g.running) {
+      g.birdVY = g.flapStrength;
+    }
   }, []);
 
   const start = useCallback(() => {
     const g = gameRef.current;
     g.birdY = H / 2 - 30;
-    g.birdVY = -4;           // Gentle start lift
+    g.birdVY = -4;
     g.rotation = 0;
     g.pipes = [];
     g.clouds = [];
@@ -210,7 +217,8 @@ export default function FlappyBirdPage() {
       }
     };
 
-    const handleTap = () => {
+    const handleTap = (e: Event) => {
+      e.preventDefault();
       if (status === "playing") {
         flap();
       } else {
@@ -222,7 +230,7 @@ export default function FlappyBirdPage() {
     const canvas = canvasRef.current;
     if (canvas) {
       canvas.addEventListener("click", handleTap);
-      canvas.addEventListener("touchstart", handleTap);
+      canvas.addEventListener("touchstart", handleTap, { passive: false });
     }
 
     return () => {
@@ -247,7 +255,9 @@ export default function FlappyBirdPage() {
         <h1 style={{ fontFamily: "'Orbitron', monospace", fontSize: "2.2rem", fontWeight: 900, color: "#eab308", marginBottom: 8 }}>
           🐦 Floppy Bird
         </h1>
-        <p style={{ color: "#64748b", marginBottom: 24 }}>Click Spacebar to Flap</p>
+        <p style={{ color: "#64748b", marginBottom: 24 }}>
+          {isMobile.current ? "Tap Screen to Flap" : "Click or Spacebar to Flap"}
+        </p>
 
         <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
           {[{ label: "Score", val: score, color: "#eab308" }, { label: "Best", val: best, color: "#22d3ee" }].map((st) => (
@@ -259,7 +269,12 @@ export default function FlappyBirdPage() {
         </div>
 
         <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", border: "2px solid #1e1e2e" }}>
-          <canvas ref={canvasRef} width={W} height={H} style={{ display: "block", width: "100%" }} />
+          <canvas 
+            ref={canvasRef} 
+            width={W} 
+            height={H} 
+            style={{ display: "block", width: "100%", touchAction: "none" }} 
+          />
 
           {status !== "playing" && (
             <div style={{

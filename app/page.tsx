@@ -15,7 +15,7 @@ const games = [
   {
     title: "Puzzle",
     description: "Slide tiles into order. A satisfying number puzzle.",
-    icon: "🖽",
+    icon: "🧩",
     href: "/games/puzzle",
     color: "#6c63ff",
     tag: "Puzzle",
@@ -38,7 +38,7 @@ const games = [
     tag: "Puzzle",
 },
 {
-  title: "Typing Test",
+  title: "Typing Master",
   description: "Test and improve your typing speed",
   icon: "⌨️",
   href: "/games/typing",
@@ -58,7 +58,7 @@ const games = [
     description: "Flag all mines and uncover the safe cells. A true test of logic!",
     icon: "💣",
     href: "/games/minesweeper",
-    color: "#10b981",
+    color: "#22ff00ff",
     tag: "Solo",
 },
  {
@@ -66,7 +66,7 @@ const games = [
     description: "Fill the blanks! Guess the word with limited attempts.",
     icon: "📝",
     href: "/games/wordly",
-    color: "#10b981",
+    color: "#b6b910ff",
     tag: "Fill Blanks",
 },
   {
