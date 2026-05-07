@@ -370,24 +370,6 @@ const Tetris: React.FC = () => {
 
   const displayBoard = renderBoard();
 
-  // Handle touch for hard drop (long press)
-  const handleTouchStart = (e: React.TouchEvent, action: () => void, isLongPress?: boolean) => {
-    if (isLongPress) {
-      touchStartTime.current = Date.now();
-    } else {
-      e.preventDefault();
-      action();
-    }
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent, action: () => void) => {
-    const duration = Date.now() - touchStartTime.current;
-    if (duration > 300) {
-      action(); // Hard drop on long press
-    }
-    touchStartTime.current = 0;
-  };
-
   return (
     <>
       <style jsx>{`
@@ -844,33 +826,65 @@ const Tetris: React.FC = () => {
                 ))}
               </div>
 
-              {/* Mobile Controls - Just 4 Arrow Buttons */}
+              {/* Mobile Controls - Fixed for mobile */}
               <div className="mobile-controls">
                 <button 
                   className="arrow-btn"
-                  onClick={() => movePiece(-1, 0)}
-                  onTouchStart={(e) => { e.preventDefault(); movePiece(-1, 0); }}
+                  onTouchStart={(e) => { 
+                    e.preventDefault(); 
+                    movePiece(-1, 0);
+                  }}
+                  onClick={(e) => {
+                    if (!isMobile) {
+                      e.preventDefault();
+                      movePiece(-1, 0);
+                    }
+                  }}
                 >
                   ←
                 </button>
                 <button 
                   className="arrow-btn"
-                  onClick={() => movePiece(0, 1)}
-                  onTouchStart={(e) => { e.preventDefault(); movePiece(0, 1); }}
+                  onTouchStart={(e) => { 
+                    e.preventDefault(); 
+                    movePiece(0, 1);
+                  }}
+                  onClick={(e) => {
+                    if (!isMobile) {
+                      e.preventDefault();
+                      movePiece(0, 1);
+                    }
+                  }}
                 >
                   ↓
                 </button>
                 <button 
                   className="arrow-btn"
-                  onClick={() => movePiece(1, 0)}
-                  onTouchStart={(e) => { e.preventDefault(); movePiece(1, 0); }}
+                  onTouchStart={(e) => { 
+                    e.preventDefault(); 
+                    movePiece(1, 0);
+                  }}
+                  onClick={(e) => {
+                    if (!isMobile) {
+                      e.preventDefault();
+                      movePiece(1, 0);
+                    }
+                  }}
                 >
                   →
                 </button>
                 <button 
                   className="arrow-btn up-btn"
-                  onClick={() => rotatePiece()}
-                  onTouchStart={(e) => { e.preventDefault(); rotatePiece(); }}
+                  onTouchStart={(e) => { 
+                    e.preventDefault(); 
+                    rotatePiece();
+                  }}
+                  onClick={(e) => {
+                    if (!isMobile) {
+                      e.preventDefault();
+                      rotatePiece();
+                    }
+                  }}
                 >
                   ↑
                 </button>
